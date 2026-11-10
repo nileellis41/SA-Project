@@ -13,7 +13,7 @@ signals/*
 !reports/tables/*.csv
 !reports/tables_27_spreads/*.csv
 !reports/tables_before_breadth/*.csv
-!results/cost_round1/*.csv
+!results/*/*.csv
 !analysis/experiments/*.csv
 !analysis/portfolio_diagnostics/tables/*.csv
 !submission/tables/*.csv

@@ -1,3 +1,22 @@
+# Raw and processed data never go into git (Bloomberg data is licensed)
+data/raw/*
+data/processed/*
+signals/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!signals/.gitkeep
+*.csv
+*.parquet
+*.xlsx
+
+# Derived result tables cited by the reports are small and safe to publish
+!reports/tables/*.csv
+!reports/tables_27_spreads/*.csv
+!reports/tables_before_breadth/*.csv
+!results/cost_round1/*.csv
+!analysis/experiments/*.csv
+!analysis/portfolio_diagnostics/tables/*.csv
+!submission/tables/*.csv
 
 # Regenerable caches and logs (runs.pkl is over GitHub's 100 MB limit)
 *.pkl

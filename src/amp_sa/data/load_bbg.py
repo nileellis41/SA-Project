@@ -1,6 +1,6 @@
 """Bloomberg CSV loaders and the clean daily panel.
 
-Two export layouts are supported (see CLAUDE.md):
+Two export layouts are supported (see README.md and the notes below):
   Layout A: one (date, value) column pair per series, each with its own dates.
   Layout B: one shared date column, then a block of field columns per ticker.
 

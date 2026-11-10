@@ -1,0 +1,13 @@
+model,member,data_start,first_traded
+pca2,pca2_ust_2y,1990-01-02,1994-12-02
+pca2,pca2_ust_3y,2005-01-03,2010-05-21
+pca2,pca2_ust_5y,1990-01-02,1994-12-02
+pca2,pca2_ust_7y,2009-02-26,2014-04-02
+pca2,pca2_ust_10y,1990-01-02,1994-12-02
+pca2,pca2_ust_30y,1990-01-02,1994-12-02
+pca3_sparse,pca3s_ust_2y,1990-01-02,1994-12-02
+pca3_sparse,pca3s_ust_3y,2005-01-03,2010-05-21
+pca3_sparse,pca3s_ust_5y,1990-01-02,1994-12-02
+pca3_sparse,pca3s_ust_7y,2009-02-26,2014-04-02
+pca3_sparse,pca3s_ust_10y,1990-01-02,1994-12-02
+pca3_sparse,pca3s_ust_30y,1990-01-02,1994-12-02

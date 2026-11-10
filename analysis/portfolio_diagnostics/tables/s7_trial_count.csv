@@ -1,0 +1,5 @@
+source,trials
+model table rows (reports/tables/sleeve1_models.csv),11
+"cost-filter variants not already in the model table (cost_filter_effect.csv, 12 rows - 4 duplicates)",8
+"2s10s curve rules other than PCA (curve_full.csv, 10 rows - 2 PCA rows)",8
+"design revisions listed in appendix.md (adaptive x2, cointegration screen, vol estimate)",4

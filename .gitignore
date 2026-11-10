@@ -1,0 +1,24 @@
+
+# Regenerable caches and logs (runs.pkl is over GitHub's 100 MB limit)
+*.pkl
+*.log
+
+# Drafts, archives and duplicates
+*.zip
+*_prepatch.pptx
+SA Draft Presentation.pptx
+Sleeve 1 PCA Curve Residuals.pptx
+final_presentation/
+
+# Third-party paper: cite it, do not redistribute
+Optimal Mean Reversion Trading*.pdf
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/

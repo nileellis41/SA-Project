@@ -1,0 +1,21 @@
+strategy,PCA headline (PCA-2 + credit),PCA-3 sparse,S&P 500 daily return
+"SPX IV level, static",0.0,0.02,0.14
+"SPX IV level, rolling",0.04,0.03,0.14
+"SPX IV level, rolling + HMM gate",0.04,0.04,0.14
+"SPX IV minus realised, static",0.03,0.02,0.15
+"SPX IV minus realised, rolling",0.01,-0.02,0.05
+"SPX IV minus realised, rolling + HMM gate",0.01,-0.02,0.06
+SPX always short vol,0.08,0.03,0.57
+SPX always long vol,-0.08,-0.03,-0.57
+SPX HMM switch: short vol in calm states,0.08,0.03,0.57
+"SPX underlying, long",0.09,0.03,0.84
+"NDX IV level, static",0.04,0.0,0.14
+"NDX IV level, rolling",0.04,-0.02,0.13
+"NDX IV level, rolling + HMM gate",0.03,-0.02,0.12
+"NDX IV minus realised, static",0.02,0.01,0.1
+"NDX IV minus realised, rolling",0.05,-0.01,0.05
+"NDX IV minus realised, rolling + HMM gate",0.05,-0.01,0.05
+NDX always short vol,0.1,0.03,0.52
+NDX always long vol,-0.1,-0.03,-0.53
+NDX HMM switch: short vol in calm states,0.1,0.03,0.52
+"NDX underlying, long",0.13,0.05,0.76

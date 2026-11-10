@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sleeve 1 Diagnostics</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10); --mid: #f0efec;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --pos: #2a78d6; --neg: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --mid: #383835;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --pos: #3987e5; --neg: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --mid: #383835;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --pos: #3987e5; --neg: #e66767;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
+h2 { font-size: 16px; margin: 32px 0 4px; font-weight: 600; }
+.sub { color: var(--ink2); margin: 0 0 16px; max-width: 900px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0 8px; position: sticky; top: 0; background: var(--page); padding: 8px 0; z-index: 5; }
+.controls button { border: 1px solid var(--ring); background: var(--surface); color: var(--ink); padding: 6px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+.controls button[aria-pressed="true"] { border-color: var(--ink); font-weight: 600; }
+.controls .spacer { flex: 1; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 14px 14px 10px; min-width: 0; }
+.card h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.card p.note { margin: 2px 0 8px; color: var(--ink2); font-size: 12.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0 6px; font-size: 12px; color: var(--ink2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+.legend i.box { height: 10px; width: 10px; border-radius: 2px; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; overflow: hidden; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--ring); border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); white-space: nowrap; z-index: 10; display: none; }
+.tip .d { color: var(--muted); margin-bottom: 2px; }
+.tip .r { display: flex; align-items: center; gap: 6px; }
+.tip .r b { font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
+.tip .r i { width: 10px; height: 2px; display: inline-block; }
+table.kpi { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+table.kpi th, table.kpi td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--grid); }
+table.kpi th:first-child, table.kpi td:first-child { text-align: left; }
+table.kpi th { color: var(--ink2); font-weight: 600; }
+.tablewrap { overflow-x: auto; }
+select { font: inherit; background: var(--surface); color: var(--ink); border: 1px solid var(--ring); border-radius: 6px; padding: 4px 8px; }
+.multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.multiples .m { border: 1px solid var(--grid); border-radius: 8px; padding: 6px 8px; }
+.multiples .m .t { font-size: 11.5px; color: var(--ink2); }
+text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.axis line, .axis path { stroke: var(--axis); }
+footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sleeve 1 diagnostics</h1>
+  <p class="sub">Out-of-sample walk-forward P&amp;L of the Treasury-curve mean-reversion sleeve, at the 10% volatility target. Returns are additive fractions of capital; dollar figures are for a notional $1m book. Financing, carry and roll-down are not modeled.</p>
+
+  <h2>All models</h2>
+  <div class="grid">
+    <div class="card" style="grid-column: 1 / -1"><h3>Key numbers, net of 1x cost</h3><p class="note">Breakeven multiplier: the multiple of the cost table at which mean net P&amp;L is zero, with positions held fixed.</p><div class="tablewrap" id="kpi"></div></div>
+    <div class="card"><h3>Cumulative net P&amp;L</h3><p class="note">% of capital, additive.</p><div class="chart" id="cumnet"></div></div>
+    <div class="card"><h3>Underwater</h3><p class="note">Drawdown from the running peak of cumulative net P&amp;L, % of capital.</p><div class="chart" id="underwater"></div></div>
+    <div class="card"><h3>Rolling 1-year Sharpe, net</h3><p class="note">252-bar window.</p><div class="chart" id="rollsharpe"></div></div>
+    <div class="card"><h3>Breakeven cost curve</h3><p class="note">Net Sharpe against the multiple of the cost table (1x = 0.25 bp per Treasury leg, one way). Positions and weights fixed at the 1x run.</p><div class="chart" id="breakeven"></div></div>
+  </div>
+
+  <div class="controls" role="toolbar" aria-label="Model">
+    <span style="color:var(--ink2)">Model</span>
+    <span id="modelButtons"></span>
+    <span class="spacer"></span>
+    <button id="theme" type="button" aria-label="Toggle theme">Theme</button>
+  </div>
+
+  <h2 id="modelTitle">Selected model</h2>
+  <div class="grid">
+    <div class="card" style="grid-column: 1 / -1"><h3>Cumulative net P&amp;L by member</h3><p class="note">Each member's contribution, stacked; losses stack below zero. The line is the sleeve total. % of capital.</p><div class="chart" id="contrib"></div></div>
+    <div class="card"><h3>Exposure: gross and net DV01</h3><p class="note">Treasury legs, $ per bp at a $1m book, weekly mean. Gross sums |exposure| across legs of the netted book.</p><div class="chart" id="dv01"></div></div>
+    <div class="card"><h3>Factor exposure after hedging</h3><p class="note">Netted book against PC1-3 from trailing 1-year loadings (causal). Against the fold's own loadings the hedged factors are zero by construction. $ per 1 bp factor move.</p><div class="chart" id="factor"></div></div>
+    <div class="card"><h3>Per-trade attribution, total over all trades</h3><p class="note">Risk units (1 = one trailing daily sigma of the member). Leak uses trailing loadings.</p><div class="chart" id="attr"></div></div>
+    <div class="card"><h3>Residual vs raw volatility</h3><p class="note">Rolling 1-year daily vol, bp: average live member's residual package vs the raw 5y yield.</p><div class="chart" id="vol"></div></div>
+    <div class="card"><h3>Cumulative cost by type</h3><p class="note">% of capital. Rescale = changes in sleeve leverage.</p><div class="chart" id="cumcost"></div></div>
+    <div class="card"><h3>Cost by leg</h3><p class="note">% of capital per year. Engine charge allocated to legs by |weight| x cost, and the netted-book leg cost.</p><div class="chart" id="costleg"></div></div>
+    <div class="card"><h3>Leg weights by fold</h3><p class="note">Weight per unit of the member, fold x tenor (fold mean for Kalman legs). Blue long, red short.</p><select id="memberSelect" aria-label="Member"></select><div class="chart" id="legheat"></div></div>
+    <div class="card"><h3>Net P&amp;L by year and member</h3><p class="note">% of capital. Blue gain, red loss.</p><div class="chart" id="yearheat"></div></div>
+    <div class="card"><h3>Entry z-score vs trade net</h3><p class="note">Risk units. One dot per trade.</p><div class="chart" id="zscatter"></div></div>
+    <div class="card"><h3>Holding period vs trade net</h3><p class="note">Bars held vs net, risk units.</p><div class="chart" id="hscatter"></div></div>
+    <div class="card" style="grid-column: 1 / -1"><h3>Ten worst trades: residual paths</h3><p class="note">Cumulative member change in bp, rebased to 0 at entry, 20 bars before entry to 10 after exit. Shaded span = position held. A short loses when the line rises.</p><div class="multiples" id="worst"></div></div>
+  </div>
+  <footer>Generated by analysis/portfolio_diagnostics/report.py from the cached walk-forward runs. Tables: analysis/portfolio_diagnostics/tables/.</footer>
+</main>
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+(() => {
+const D = JSON.parse(document.getElementById('data').textContent);
+const NS = 'http://www.w3.org/2000/svg';
+const MODELS = ['headline', 'pca3_sparse', 'pca2', 'pairwise_nn'];
+const ALL = ['headline', 'pca3_sparse', 'pca2', 'pairwise_nn', 'fly_2s5s10s', 'fly_3s5s7s'];
+const NAMES = Object.assign({ fly_2s5s10s: '2s5s10s fly (fixed)', fly_3s5s7s: '3s5s7s fly (fixed)' }, D.labels);
+const SLOT = { headline: 1, pca3_sparse: 2, pca2: 3, pairwise_nn: 4, fly_2s5s10s: 5, fly_3s5s7s: 6 };
+let state = { model: 'headline', member: null };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const slot = i => css('--s' + (((i - 1) % 8) + 1));
+const pct = v => v == null ? '–' : (v * 100).toFixed(1) + '%';
+const usd = v => v == null ? '–' : '$' + Math.round(v).toLocaleString();
+const num = d => v => v == null ? '–' : (+v).toFixed(d);
+const dt = s => Date.parse(s + 'T00:00:00Z');
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function nice(lo, hi, n) {
+  if (!isFinite(lo) || !isFinite(hi)) return [0, 1];
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const step0 = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= step0);
+  const t = [];
+  const end = Math.ceil(hi / step - 1e-9) * step;  // the last tick covers the data maximum
+  for (let v = Math.floor(lo / step) * step; v <= end + step * 1e-9; v += step) t.push(+v.toFixed(12));
+  return t;
+}
+function legend(host, items, box) {
+  const L = document.createElement('div'); L.className = 'legend';
+  items.forEach(it => {
+    const s = document.createElement('span'), i = document.createElement('i');
+    if (box) i.className = 'box';
+    i.style.background = it.color; s.appendChild(i);
+    s.appendChild(document.createTextNode(it.name)); L.appendChild(s);
+  });
+  host.appendChild(L);
+}
+function tipRows(tip, title, rows) {
+  tip.textContent = '';
+  const d = document.createElement('div'); d.className = 'd'; d.textContent = title; tip.appendChild(d);
+  rows.forEach(r => {
+    const row = document.createElement('div'); row.className = 'r';
+    if (r.color) { const i = document.createElement('i'); i.style.background = r.color; row.appendChild(i); }
+    const b = document.createElement('b'); b.textContent = r.value; row.appendChild(b);
+    const s = document.createElement('span'); s.textContent = r.name; row.appendChild(s);
+    tip.appendChild(row);
+  });
+}
+function frame(host, height) {
+  const wrap = document.createElement('div'); wrap.className = 'chart'; host.appendChild(wrap);
+  const W = Math.max(280, host.clientWidth || 560), H = height || 240;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, wrap);
+  const tip = document.createElement('div'); tip.className = 'tip'; wrap.appendChild(tip);
+  return { wrap, svg, tip, W, H, m: { l: 56, r: 12, t: 8, b: 24 } };
+}
+function yAxis(f, y, ticks, fmt) {
+  const g = el('g', { class: 'axis' }, f.svg);
+  ticks.forEach(t => {
+    el('line', { x1: f.m.l, x2: f.W - f.m.r, y1: y(t), y2: y(t), stroke: t === 0 ? css('--axis') : css('--grid'), 'stroke-width': 1 }, g);
+    const tx = el('text', { x: f.m.l - 6, y: y(t) + 4, 'text-anchor': 'end' }, g); tx.textContent = fmt(t);
+  });
+}
+function xTimeAxis(f, x, lo, hi) {
+  const y0 = new Date(lo).getUTCFullYear(), y1 = new Date(hi).getUTCFullYear();
+  const step = Math.max(1, Math.ceil((y1 - y0) / Math.max(2, Math.floor((f.W - 80) / 70))));
+  for (let yr = Math.ceil(y0 / step) * step; yr <= y1; yr += step) {
+    const v = Date.UTC(yr, 0, 1); if (v < lo) continue;
+    const tx = el('text', { x: x(v), y: f.H - 6, 'text-anchor': 'middle' }, f.svg); tx.textContent = yr;
+  }
+}
+
+// Line chart with crosshair; series: [{name, values, color}]
+function lineChart(host, dates, series, fmt, opts = {}) {
+  host.textContent = '';
+  legend(host, series.map(s => ({ name: s.name, color: s.color })));
+  const f = frame(host, opts.height);
+  const xs = dates.map(dt), lo = xs[0], hi = xs[xs.length - 1];
+  let vmin = Infinity, vmax = -Infinity;
+  series.forEach(s => s.values.forEach(v => { if (v != null) { vmin = Math.min(vmin, v); vmax = Math.max(vmax, v); } }));
+  if (opts.zero) { vmin = Math.min(vmin, 0); vmax = Math.max(vmax, 0); }
+  const ticks = nice(vmin, vmax, 5), y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const x = v => f.m.l + (v - lo) / (hi - lo || 1) * (f.W - f.m.l - f.m.r);
+  const y = v => f.H - f.m.b - (v - y0) / (y1 - y0 || 1) * (f.H - f.m.t - f.m.b);
+  yAxis(f, y, ticks, fmt); xTimeAxis(f, x, lo, hi);
+  series.forEach(s => {
+    let d = '', pen = false;
+    s.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(xs[i]).toFixed(1) + ',' + y(v).toFixed(1); pen = true; });
+    el('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, f.svg);
+  });
+  crosshair(f, xs, x, i => series.map(s => ({ name: s.name, value: fmt(s.values[i]), color: s.color })), i => dates[i]);
+}
+function crosshair(f, xs, x, rowsAt, titleAt) {
+  const line = el('line', { y1: f.m.t, y2: f.H - f.m.b, stroke: css('--axis'), 'stroke-width': 1, visibility: 'hidden' }, f.svg);
+  const hit = el('rect', { x: f.m.l, y: 0, width: f.W - f.m.l - f.m.r, height: f.H, fill: 'transparent', tabindex: 0 }, f.svg);
+  const move = ev => {
+    const r = f.svg.getBoundingClientRect(), px = (ev.clientX - r.left) * f.W / r.width;
+    let i = 0, best = Infinity;
+    for (let k = 0; k < xs.length; k++) { const dd = Math.abs(x(xs[k]) - px); if (dd < best) { best = dd; i = k; } }
+    line.setAttribute('x1', x(xs[i])); line.setAttribute('x2', x(xs[i])); line.setAttribute('visibility', 'visible');
+    tipRows(f.tip, titleAt(i), rowsAt(i));
+    f.tip.style.display = 'block';
+    const left = (x(xs[i]) * r.width / f.W);
+    f.tip.style.left = Math.min(left + 12, r.width - f.tip.offsetWidth - 4) + 'px'; f.tip.style.top = '8px';
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerleave', () => { f.tip.style.display = 'none'; line.setAttribute('visibility', 'hidden'); });
+}
+
+// Stacked area, positives up and negatives down, plus a total line.
+function stackedArea(host, dates, series, fmt, total) {
+  host.textContent = '';
+  legend(host, series.map(s => ({ name: s.name, color: s.color })).concat(total ? [{ name: 'Total', color: css('--ink') }] : []), true);
+  const f = frame(host, 300);
+  const xs = dates.map(dt), n = xs.length, lo = xs[0], hi = xs[n - 1];
+  const pos = new Array(n).fill(0), neg = new Array(n).fill(0), bands = [];
+  // Each series gets a positive band (on the up stack) and a negative band (on the down stack), so a sign
+  // change never makes one polygon jump between stacks.
+  series.forEach(s => {
+    const p0 = [], p1 = [], n0 = [], n1 = [];
+    s.values.forEach((v, i) => {
+      v = v || 0;
+      p0.push(pos[i]); pos[i] += Math.max(v, 0); p1.push(pos[i]);
+      n0.push(neg[i]); neg[i] += Math.min(v, 0); n1.push(neg[i]);
+    });
+    bands.push({ s, b0: p0, b1: p1 }, { s, b0: n0, b1: n1 });
+  });
+  const vmin = Math.min(0, ...neg), vmax = Math.max(0, ...pos, ...(total || []).filter(v => v != null));
+  const ticks = nice(Math.min(vmin, ...(total || []).filter(v => v != null)), vmax, 5), y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const x = v => f.m.l + (v - lo) / (hi - lo || 1) * (f.W - f.m.l - f.m.r);
+  const y = v => f.H - f.m.b - (v - y0) / (y1 - y0 || 1) * (f.H - f.m.t - f.m.b);
+  yAxis(f, y, ticks, fmt); xTimeAxis(f, x, lo, hi);
+  bands.forEach(({ s, b0, b1 }) => {
+    let d = 'M' + xs.map((t, i) => x(t).toFixed(1) + ',' + y(b1[i]).toFixed(1)).join('L');
+    d += 'L' + xs.map((t, i) => x(t).toFixed(1) + ',' + y(b0[i]).toFixed(1)).reverse().join('L') + 'Z';
+    el('path', { d, fill: s.color, 'fill-opacity': 0.85, stroke: css('--surface'), 'stroke-width': 0.5 }, f.svg);
+  });
+  if (total) {
+    let d = '', pen = false;
+    total.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(xs[i]).toFixed(1) + ',' + y(v).toFixed(1); pen = true; });
+    el('path', { d, fill: 'none', stroke: css('--ink'), 'stroke-width': 2 }, f.svg);
+  }
+  crosshair(f, xs, x, i => (total ? [{ name: 'Total', value: fmt(total[i]), color: css('--ink') }] : [])
+    .concat(series.map(s => ({ name: s.name, value: fmt(s.values[i]), color: s.color }))), i => dates[i]);
+}
+
+// Horizontal grouped bars: cats on rows, groups as bars within a row.
+function hbars(host, cats, groups, fmt) {
+  host.textContent = '';
+  if (groups.length > 1) legend(host, groups.map(g => ({ name: g.name, color: g.color })), true);
+  const rowH = Math.max(20, 12 * groups.length + 10), H = cats.length * rowH + 32;
+  const f = frame(host, H); f.m.l = 120;
+  let vmin = 0, vmax = 0;
+  groups.forEach(g => g.values.forEach(v => { vmin = Math.min(vmin, v || 0); vmax = Math.max(vmax, v || 0); }));
+  const ticks = nice(vmin, vmax, 5), x0 = ticks[0], x1 = ticks[ticks.length - 1];
+  const x = v => f.m.l + (v - x0) / (x1 - x0 || 1) * (f.W - f.m.l - f.m.r - 50);
+  ticks.forEach(t => {
+    el('line', { x1: x(t), x2: x(t), y1: f.m.t, y2: H - 22, stroke: t === 0 ? css('--axis') : css('--grid') }, f.svg);
+    const tx = el('text', { x: x(t), y: H - 6, 'text-anchor': 'middle' }, f.svg); tx.textContent = fmt(t);
+  });
+  const bh = Math.min(16, (rowH - 8) / groups.length);
+  cats.forEach((c, ci) => {
+    const yc = f.m.t + ci * rowH;
+    const tx = el('text', { x: f.m.l - 8, y: yc + rowH / 2 + 4, 'text-anchor': 'end' }, f.svg); tx.textContent = c;
+    groups.forEach((g, gi) => {
+      const v = g.values[ci] || 0, xa = x(Math.min(0, v)), w = Math.max(1, Math.abs(x(v) - x(0)));
+      const yb = yc + 4 + gi * (bh + 2);
+      const r = el('rect', { x: xa, y: yb, width: w, height: bh, rx: 3, fill: g.color }, f.svg);
+      const lab = el('text', { x: v >= 0 ? x(v) + 4 : x(v) - 4, y: yb + bh / 2 + 4, 'text-anchor': v >= 0 ? 'start' : 'end' }, f.svg);
+      lab.textContent = fmt(v); lab.style.fill = css('--ink2');
+      r.addEventListener('pointermove', ev => { tipRows(f.tip, c, [{ name: g.name, value: fmt(v), color: g.color }]); place(f, ev); });
+      r.addEventListener('pointerleave', () => f.tip.style.display = 'none');
+    });
+  });
+}
+function place(f, ev) {
+  const r = f.wrap.getBoundingClientRect();
+  f.tip.style.display = 'block';
+  f.tip.style.left = Math.min(ev.clientX - r.left + 12, r.width - f.tip.offsetWidth - 4) + 'px';
+  f.tip.style.top = Math.max(0, ev.clientY - r.top - f.tip.offsetHeight - 8) + 'px';
+}
+
+// Diverging heatmap: rows x cols, blue positive, red negative, gray midpoint.
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+function heatmap(host, rows, cols, values, fmt, cellH) {
+  host.textContent = '';
+  const ch = cellH || 18, H = rows.length * ch + 40;
+  const f = frame(host, H); f.m.l = 110;
+  let amax = 0; values.forEach(r => r.forEach(v => { if (v != null) amax = Math.max(amax, Math.abs(v)); }));
+  const cw = (f.W - f.m.l - f.m.r) / cols.length;
+  const mid = css('--mid'), P = css('--pos'), N = css('--neg');
+  cols.forEach((c, j) => {
+    const every = Math.ceil(cols.length / Math.max(1, Math.floor((f.W - f.m.l) / 34)));
+    if (j % every) return;
+    const tx = el('text', { x: f.m.l + j * cw + cw / 2, y: H - 8, 'text-anchor': 'middle' }, f.svg); tx.textContent = c;
+  });
+  rows.forEach((rname, i) => {
+    const tx = el('text', { x: f.m.l - 6, y: f.m.t + i * ch + ch / 2 + 4, 'text-anchor': 'end' }, f.svg); tx.textContent = rname;
+    cols.forEach((c, j) => {
+      const v = values[i][j];
+      const t = v == null || amax === 0 ? 0 : Math.min(1, Math.abs(v) / amax);
+      const fill = v == null ? 'transparent' : mix(mid, v >= 0 ? P : N, Math.sqrt(t));
+      const r = el('rect', { x: f.m.l + j * cw + 1, y: f.m.t + i * ch + 1, width: Math.max(1, cw - 2), height: ch - 2, rx: 2, fill }, f.svg);
+      r.addEventListener('pointermove', ev => { tipRows(f.tip, rname + ' · ' + c, [{ name: '', value: fmt(v) }]); place(f, ev); });
+      r.addEventListener('pointerleave', () => f.tip.style.display = 'none');
+    });
+  });
+}
+
+// Scatter with nearest-point hover.
+function scatter(host, pts, xl, yl, xfmt, yfmt) {
+  host.textContent = '';
+  const f = frame(host, 260);
+  f.m.b = 36;
+  const xsv = pts.map(p => p.x), ysv = pts.map(p => p.y);
+  const xt = nice(Math.min(...xsv), Math.max(...xsv), 6), yt = nice(Math.min(0, ...ysv), Math.max(0, ...ysv), 5);
+  const x = v => f.m.l + (v - xt[0]) / (xt[xt.length - 1] - xt[0] || 1) * (f.W - f.m.l - f.m.r);
+  const y = v => f.H - f.m.b - (v - yt[0]) / (yt[yt.length - 1] - yt[0] || 1) * (f.H - f.m.t - f.m.b);
+  yAxis(f, y, yt, yfmt);
+  xt.forEach(t => { const tx = el('text', { x: x(t), y: f.H - 20, 'text-anchor': 'middle' }, f.svg); tx.textContent = xfmt(t); });
+  const lab = el('text', { x: (f.m.l + f.W) / 2, y: f.H - 4, 'text-anchor': 'middle' }, f.svg); lab.textContent = xl;
+  const ylab = el('text', { x: f.m.l + 4, y: f.m.t + 10 }, f.svg); ylab.textContent = yl;
+  pts.forEach(p => el('circle', { cx: x(p.x), cy: y(p.y), r: 3.5, fill: p.color, 'fill-opacity': 0.7, stroke: css('--surface'), 'stroke-width': 1 }, f.svg));
+  const ring = el('circle', { r: 6, fill: 'none', stroke: css('--ink'), 'stroke-width': 1.5, visibility: 'hidden' }, f.svg);
+  const hit = el('rect', { x: f.m.l, y: f.m.t, width: f.W - f.m.l - f.m.r, height: f.H - f.m.t - f.m.b, fill: 'transparent' }, f.svg);
+  hit.addEventListener('pointermove', ev => {
+    const r = f.svg.getBoundingClientRect(), px = (ev.clientX - r.left) * f.W / r.width, py = (ev.clientY - r.top) * f.H / r.height;
+    let best = Infinity, bp = null;
+    pts.forEach(p => { const dd = (x(p.x) - px) ** 2 + (y(p.y) - py) ** 2; if (dd < best) { best = dd; bp = p; } });
+    if (!bp || best > 900) { f.tip.style.display = 'none'; ring.setAttribute('visibility', 'hidden'); return; }
+    ring.setAttribute('cx', x(bp.x)); ring.setAttribute('cy', y(bp.y)); ring.setAttribute('visibility', 'visible');
+    tipRows(f.tip, bp.label, [{ name: yl, value: yfmt(bp.y) }, { name: xl, value: xfmt(bp.x) }]); place(f, ev);
+  });
+  hit.addEventListener('pointerleave', () => { f.tip.style.display = 'none'; ring.setAttribute('visibility', 'hidden'); });
+}
+
+// ---------- page ----------
+function kpiTable() {
+  const host = document.getElementById('kpi'); host.textContent = '';
+  const t = document.createElement('table'); t.className = 'kpi';
+  const head = ['Model', 'Start', 'Net return / yr', 'Net vol', 'Net Sharpe', 'Gross Sharpe', 'Sortino', 'Max DD', 'Worst week', '99% ES (day)', 'Breakeven x'];
+  const tr = document.createElement('tr'); head.forEach(h => { const th = document.createElement('th'); th.textContent = h; tr.appendChild(th); }); t.appendChild(tr);
+  ALL.forEach(m => {
+    const n = D.kpis.find(r => r.model === m && r.basis === 'net'), g = D.kpis.find(r => r.model === m && r.basis === 'gross');
+    const b = D.breakeven_table.find(r => r.model === m);
+    const row = document.createElement('tr');
+    [NAMES[m], n.start, pct(n.ann_return), pct(n.ann_vol), num(2)(n.sharpe), num(2)(g.sharpe), num(2)(n.sortino), pct(n.max_dd), pct(n.worst_week), pct(n.es_99), num(2)(b.breakeven_mult)]
+      .forEach(v => { const td = document.createElement('td'); td.textContent = v; row.appendChild(td); });
+    t.appendChild(row);
+  });
+  host.appendChild(t);
+}
+function crossModel() {
+  const sel = (obj, keys) => keys.filter(k => obj.series[k]).map(k => ({ name: NAMES[k], values: obj.series[k], color: slot(SLOT[k]) }));
+  lineChart(document.getElementById('cumnet'), D.cum_net.dates, sel(D.cum_net, ALL), pct, { zero: true });
+  lineChart(document.getElementById('underwater'), D.underwater.dates, sel(D.underwater, ALL), pct, { zero: true });
+  lineChart(document.getElementById('rollsharpe'), D.rolling_sharpe.dates, sel(D.rolling_sharpe, MODELS), num(1), { zero: true });
+  const host = document.getElementById('breakeven');
+  const mults = [...new Set(D.breakeven.map(r => r.mult))];
+  // numeric x: reuse the scatter axes but draw lines
+  host.textContent = '';
+  legend(host, ALL.map(m => ({ name: NAMES[m], color: slot(SLOT[m]) })));
+  const f = frame(host, 240); f.m.b = 36;
+  const all = D.breakeven.map(r => r.net_sharpe);
+  const yt = nice(Math.min(...all), Math.max(...all), 5), xt = nice(0, Math.max(...mults), 6);
+  const x = v => f.m.l + v / xt[xt.length - 1] * (f.W - f.m.l - f.m.r);
+  const y = v => f.H - f.m.b - (v - yt[0]) / (yt[yt.length - 1] - yt[0]) * (f.H - f.m.t - f.m.b);
+  yAxis(f, y, yt, num(1));
+  xt.forEach(t => { const tx = el('text', { x: x(t), y: f.H - 20, 'text-anchor': 'middle' }, f.svg); tx.textContent = t + 'x'; });
+  const lab = el('text', { x: (f.m.l + f.W) / 2, y: f.H - 4, 'text-anchor': 'middle' }, f.svg); lab.textContent = 'multiple of the cost table';
+  el('line', { x1: x(1), x2: x(1), y1: f.m.t, y2: f.H - f.m.b, stroke: css('--axis'), 'stroke-dasharray': '0' }, f.svg);
+  ALL.forEach(m => {
+    const rs = D.breakeven.filter(r => r.model === m);
+    el('path', { d: 'M' + rs.map(r => x(r.mult).toFixed(1) + ',' + y(r.net_sharpe).toFixed(1)).join('L'), fill: 'none', stroke: slot(SLOT[m]), 'stroke-width': 2 }, f.svg);
+  });
+  crosshair(f, mults, x, i => ALL.map(m => ({ name: NAMES[m], value: num(2)(D.breakeven.find(r => r.model === m && r.mult === mults[i]).net_sharpe), color: slot(SLOT[m]) })), i => mults[i].toFixed(2) + 'x cost');
+}
+function memberColors(names) {
+  // Color follows the member's position in the model's member list; past 7 members the rest fold into "Other".
+  const out = {}; names.forEach((n, i) => out[n] = i < 7 ? slot(i + 1) : css('--muted')); return out;
+}
+function modelView() {
+  const k = state.model, M = D.models[k];
+  document.getElementById('modelTitle').textContent = NAMES[k];
+  // contributions
+  const c = M.contrib_cum, members = Object.keys(c.series).filter(n => n !== 'sleeve_rescale');
+  let series;
+  if (members.length > 7) {
+    const keep = members.slice(0, 7), other = members.slice(7);
+    series = keep.map((n, i) => ({ name: n, values: c.series[n], color: slot(i + 1) }));
+    series.push({ name: 'Other (' + other.length + ')', values: c.dates.map((_, i) => other.reduce((s, n) => s + (c.series[n][i] || 0), 0)), color: slot(8) });
+  } else {
+    series = members.map((n, i) => ({ name: n, values: c.series[n], color: slot(i + 1) }));
+  }
+  series.push({ name: 'sleeve rescale', values: c.series.sleeve_rescale, color: css('--muted') });
+  const total = c.dates.map((_, i) => Object.keys(c.series).reduce((s, n) => s + (c.series[n][i] || 0), 0));
+  stackedArea(document.getElementById('contrib'), c.dates, series, pct, total);
+  // dv01
+  const ex = M.exposure;
+  lineChart(document.getElementById('dv01'), ex.dates, [
+    { name: 'Gross DV01', values: ex.series.gross_dv01, color: slot(1) },
+    { name: 'Net DV01', values: ex.series.net_dv01, color: slot(2) }], usd, { zero: true });
+  lineChart(document.getElementById('factor'), ex.dates, [
+    { name: 'PC1 level', values: ex.series.pc1, color: slot(1) },
+    { name: 'PC2 slope', values: ex.series.pc2, color: slot(2) },
+    { name: 'PC3 curvature', values: ex.series.pc3, color: slot(3) }], usd, { zero: true });
+  // attribution
+  const a = D.attr_summary.find(r => r.model === k);
+  const tr = D.attr_trailing ? D.attr_trailing.find(r => r.model === k) : a;
+  hbars(document.getElementById('attr'), ['Residual', 'Leak PC1', 'Leak PC2', 'Leak PC3', 'Other legs', 'Cost', 'Net'],
+    [{ name: 'risk units', values: [tr.residual, tr.pc1, tr.pc2, tr.pc3, tr.other_legs, -tr.cost, tr.net], color: slot(1) }], num(0));
+  // vol
+  const v = M.rolling_vol;
+  lineChart(document.getElementById('vol'), v.dates, [
+    { name: 'Residual package (avg member)', values: v.series.residual_avg_member, color: slot(1) },
+    { name: 'Raw 5y yield', values: v.series.raw_ust_5y, color: slot(2) }], num(1), { zero: true });
+  // cum cost
+  const cc = M.cum_cost, types = ['entry', 'exit', 'resize', 'roll', 'sleeve_rescale'];
+  stackedArea(document.getElementById('cumcost'), cc.dates, types.map((t, i) => ({ name: t.replace('_', ' '), values: cc.series[t], color: slot(i + 1) })), pct, null);
+  // cost by leg
+  const legs = M.cost_by_leg.filter(r => r.engine_allocated_pa > 1e-6 || r.netted_leg_pa > 1e-6);
+  hbars(document.getElementById('costleg'), legs.map(r => r.leg), [
+    { name: 'Engine charge, allocated', values: legs.map(r => r.engine_allocated_pa), color: slot(1) },
+    { name: 'Netted book, leg level', values: legs.map(r => r.netted_leg_pa), color: slot(2) }], v2 => (v2 * 100).toFixed(2) + '%');
+  // leg heatmap
+  const lw = M.leg_weights, memSel = document.getElementById('memberSelect');
+  const mems = [...new Set(lw.map(r => r.member))];
+  if (!mems.includes(state.member)) state.member = mems[0];
+  memSel.textContent = '';
+  mems.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; if (m === state.member) o.selected = true; memSel.appendChild(o); });
+  memSel.onchange = () => { state.member = memSel.value; legHeat(); };
+  legHeat();
+  // year x member
+  const ym = M.year_member;
+  heatmap(document.getElementById('yearheat'), ym.members, ym.years.map(String), ym.members.map((_, j) => ym.values.map(r => r[j])), pct, 16);
+  // scatters
+  const cols = memberColors(members);
+  const trades = M.trades.filter(t => t.entry_z != null);
+  scatter(document.getElementById('zscatter'), trades.map(t => ({ x: t.entry_z, y: t.net, color: cols[t.member] || slot(1), label: t.member + ' ' + t.entry })), 'entry z', 'net', num(1), num(1));
+  scatter(document.getElementById('hscatter'), M.trades.map(t => ({ x: t.bars, y: t.net, color: cols[t.member] || slot(1), label: t.member + ' ' + t.entry })), 'bars held', 'net', num(0), num(1));
+  worst();
+}
+function legHeat() {
+  const lw = D.models[state.model].leg_weights.filter(r => r.member === state.member);
+  const dates = [...new Set(lw.map(r => r.date))], tenors = [...new Set(lw.map(r => r.tenor))];
+  const val = (d, t) => { const r = lw.find(z => z.date === d && z.tenor === t); return r && r.weight != null ? r.weight : null; };
+  heatmap(document.getElementById('legheat'), tenors, dates.map(d => d.slice(0, 4)), tenors.map(t => dates.map(d => val(d, t))), num(2), 20);
+}
+function worst() {
+  const host = document.getElementById('worst'); host.textContent = '';
+  const P = D.models[state.model].worst_paths;
+  const ranks = [...new Set(P.map(p => p.rank))];
+  ranks.forEach(rk => {
+    const pts = P.filter(p => p.rank === rk), first = pts[0];
+    const box = document.createElement('div'); box.className = 'm';
+    const t = document.createElement('div'); t.className = 't';
+    t.textContent = '#' + rk + ' ' + first.member + ' · ' + (first.side > 0 ? 'long' : 'short') + ' · ' + first.entry + ' · net ' + first.net.toFixed(1);
+    box.appendChild(t); host.appendChild(box);
+    const holder = document.createElement('div'); box.appendChild(holder);
+    const f = frame(holder, 120); f.m = { l: 36, r: 6, t: 6, b: 6 };
+    const ys = pts.map(p => p.cum_change_bp), yt = nice(Math.min(...ys), Math.max(...ys), 3);
+    const x = i => f.m.l + i / (pts.length - 1 || 1) * (f.W - f.m.l - f.m.r);
+    const y = v => f.H - f.m.b - (v - yt[0]) / (yt[yt.length - 1] - yt[0] || 1) * (f.H - f.m.t - f.m.b);
+    yAxis(f, y, yt, num(1));
+    const i0 = pts.findIndex(p => p.bar === 0), i1 = pts.findIndex(p => p.date === first.exit);
+    el('rect', { x: x(i0), y: f.m.t, width: Math.max(1, x(i1 < 0 ? pts.length - 1 : i1) - x(i0)), height: f.H - f.m.t - f.m.b, fill: css('--s1'), 'fill-opacity': 0.1 }, f.svg);
+    el('path', { d: 'M' + pts.map((p, i) => x(i).toFixed(1) + ',' + y(p.cum_change_bp).toFixed(1)).join('L'), fill: 'none', stroke: css('--ink'), 'stroke-width': 1.5 }, f.svg);
+    crosshair(f, pts.map((_, i) => i), x, i => [{ name: 'bp from entry', value: num(2)(pts[i].cum_change_bp) }, { name: 'z', value: num(2)(pts[i].z) }], i => pts[i].date);
+  });
+}
+function buttons() {
+  const host = document.getElementById('modelButtons'); host.textContent = '';
+  MODELS.forEach(m => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = NAMES[m];
+    b.setAttribute('aria-pressed', String(m === state.model));
+    b.onclick = () => { state.model = m; state.member = null; buttons(); modelView(); };
+    host.appendChild(b);
+  });
+}
+function renderAll() { kpiTable(); crossModel(); buttons(); modelView(); }
+document.getElementById('theme').onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark'; renderAll();
+};
+let timer; addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(renderAll, 150); });
+renderAll();
+})();
+</script>
+</body>
+</html>

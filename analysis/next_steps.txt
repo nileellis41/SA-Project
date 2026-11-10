@@ -1,0 +1,119 @@
+SLEEVE 1 - NEXT STEPS
+=====================
+Source: analysis/trade_guide.md and analysis/portfolio_diagnostics/report.md.
+Rules for every item below:
+  - Write the rule and its fitted parameters down BEFORE running it.
+  - Run it walk-forward through analysis/experiments/pipeline.py.
+  - Report net Sharpe at the flat AND the time-varying cost.
+  - Add it to the trial count (31 documented so far) and re-run deflated Sharpe.
+  - Do not change run_sleeve1.HEADLINE or run.BOOK after seeing results.
+
+
+1. CUT COST (ranked)
+--------------------
+[ ] 1a. Freeze position size at entry   (do first: mechanical, almost no free parameters)
+      Why: resizing + sleeve leverage changes are 14-17% of cost. The 25% no-trade
+           band (resize_25pct) already added +0.06 to +0.09 Sharpe.
+      How: hold fixed DV01 from entry to exit; let the drawdown overlay handle risk.
+
+[ ] 1b. Cost-aware entry   (untested; biggest lever)
+      Rule: enter only if (|z| - z_exit) * sigma_eq_bp > k * 2 * unit_cost_bp,
+            with k >= 1 fitted per fold on the training window.
+      Why: drops the low-vol trades, which lose 1.25 sigma each (headline).
+           In-sample upper bound (look-ahead, not a result): PCA-3 sparse goes
+           from about 0 to +0.26 sigma per trade.
+      Inputs: sigma_eq is now logged per bar by the [diag-logging] change in pca.py.
+      Catch: at k = 1 the rule barely binds. 92% of PCA-2 entries already pass
+             (median expected reversion 1.67 bp vs 0.73 bp round trip), because the
+             60-bar OU overstates the move (mean realised gross is about 0.4 bp a trade).
+             Fit k per fold (expect k well above 1) or use the vol-floor variant.
+      Simpler variant: no new entries when trailing residual vol < X bp/day, X per fold.
+
+[ ] 1c. Fix the PCA-3 sparse 2010-13 defect
+      Why: a nearly singular 2y/5y/10y hedge gave the 3y member weights of
+           +68 / -121 / +69. Trades entered in those folds lost 67 risk units
+           (whole model: +9).
+      How: cap sum|w| or the condition number well below 1e8, or skip the member
+           until the 7y has a full training window. Counts as a trial.
+
+[ ] 1d. Slow the signal   (untested hypothesis)
+      Why: the 60-bar OU half-life is 6.5 bars (median); the 5-year training fit
+           says 103 (PCA-2) / 32 (PCA-3 sparse). Trades are shorter and more
+           frequent than the training fit suggests.
+      How: OU window 120 or 250 bars, or a minimum holding period.
+      Risk: gross may fall with turnover (as with Leung-Li).
+
+[ ] 1e. Futures execution as a separate cost scenario
+      Rough estimate: about 0.1 bp per leg (half tick / contract DV01, TU/FV/TY/US).
+      This is MY estimate, not from the data. Confirm ticks, commissions and
+      micro-contract costs with AMP first. Do not use the Bloomberg TY1 bid/ask
+      (about 2,500 missing days). Never make this the baseline.
+
+Skip (already measured): leg netting (saves 0.5-5.5%), charging refit
+re-hedges (<= 0.035% pa), entry band 2.5/3.0 alone (too few trades),
+Leung-Li levels (turnover falls 5x but gross Sharpe goes to -0.05),
+20-bar time stop (hurts PCA-3 sparse by -0.26).
+
+
+2. NEW DATA (free sources)
+--------------------------
+Leakage rule: lag every series to its PUBLIC RELEASE date, not its as-of date.
+Cache raw downloads under data/raw/<source>/ (gitignored).
+
+Input                     Source                         Use
+------------------------  -----------------------------  ------------------------------------------------
+Auction calendar          TreasuryDirect                 Skip entries in the days before an auction, or
+                          (already in data/raw/treasury) lean into post-auction richening.
+                                                         Note: the 5y auction-week test was not significant
+                                                         (p > 0.09); treat as low prior.
+Issuance sizes            Treasury quarterly refunding   Flag persistent supply shifts by tenor.
+                                                         Lag to the refunding announcement date.
+Fed holdings (SOMA)       NY Fed                         Tenor-specific QE/QT pressure.
+                                                         Lag to the weekly release date.
+Primary dealer positions  NY Fed weekly                  Dealers long a tenor = pressure to sell.
+                                                         Published with a lag; use the release date.
+Futures positioning       CFTC COT                       Crowded FV or TY positions.
+                                                         As of Tuesday, released Friday: lag accordingly.
+Mortgage duration         MBS index duration             Proxy for convexity-hedging flows in 5-10y.
+                          (Bloomberg terminal)
+
+Each new input is a gate or filter, so it removes trades (same as the regime
+gates). Test one at a time and count each as a trial.
+
+
+3. TENOR NOTES (for interpreting results and choosing what to test)
+-------------------------------------------------------------------
+Front end (2y, 3y)
+  Anchored to Fed policy expectations. Residuals come from shifts in the
+  expected rate path, auction cycles, and money-fund and bank flows.
+  - 2y: cheapest to trade, highest net win rate. Least bad.
+  - 3y: strongest gross edge, but most expensive. Wedged between 2y and 5y,
+        so hedging it needs larger offsetting weights (see 1c). Data from 2005,
+        but it trades only from 2010 (it needs a full 5-year training window).
+
+Belly (5y, 7y)
+  Driven by mortgage convexity hedging and the Fed path 2-5 years out.
+  - Weakest results. 5y has almost no gross edge. Belly dislocations often
+    persist (curvature trends with the Fed cycle), so fading them loses.
+  - 7y: only 14 trades; data from 2009-02-26, trades only from 2014. Too
+    small a sample to conclude much.
+  Candidate test: MBS duration (section 2) as a gate on 5y/7y members only.
+
+Long end (10y, 30y)
+  Driven by term premium, supply, inflation expectations, and pension/insurer demand.
+  - 10y: solid gross edge, high cost. Best candidate for 1b (cost-aware entry).
+  - 30y: moderate edge, moderate cost. Noisier residual. Under the
+    time-varying table its cost is 1.5x the other tenors.
+  Candidate test: refunding sizes (section 2) as a supply flag on 10y/30y.
+
+Note: a tenor enters the PCA only once it has a full 5-year training window.
+The PCA uses 2y/5y/10y/30y until 2010-05, adds the 3y then, and has all six
+tenors only from 2014-04, when the 7y enters. Results for every tenor before
+2014 come from the 4- and 5-tenor setups (report.md, Step 6).
+
+
+4. SUGGESTED ORDER
+------------------
+  1a freeze size -> 1b cost-aware entry -> 1c PCA-3 sparse fix
+  -> one data gate from section 2 (pick by tenor notes) -> 1d slower signal
+  1e (futures cost) can run any time as a separate cost scenario.

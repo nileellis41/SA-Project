@@ -1,0 +1,5 @@
+check,value,production
+Headline sleeve net Sharpe vs reports/tables/sleeve1_models.csv,-0.5988271248376741,-0.5988271248376741
+Headline frozen_sleeve(freeze_weights=False) gross == production gross (max abs diff),1.3877787807814457e-17,0.0
+PCA-3 sparse sleeve net Sharpe vs reports/tables/sleeve1_models.csv,-0.08679688947873221,-0.0867968894787322
+PCA-3 sparse frozen_sleeve(freeze_weights=False) gross == production gross (max abs diff),1.0408340855860843e-17,0.0

@@ -1,0 +1,539 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Sleeve 1 report</title><style>
+@page { size: Letter; margin: 16mm 14mm; }
+body { font-family: "Segoe UI", Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #0b0b0b; }
+h1 { font-size: 17pt; margin: 0 0 6pt; } h2 { font-size: 13pt; margin: 16pt 0 4pt; border-bottom: 1px solid #ddd; }
+h3 { font-size: 11pt; margin: 12pt 0 4pt; }
+table { border-collapse: collapse; margin: 6pt 0 10pt; font-size: 8.5pt; page-break-inside: avoid; }
+th, td { border-bottom: 1px solid #e4e3df; padding: 2pt 6pt; text-align: left; } th { background: #f3f2ee; }
+blockquote { margin: 6pt 0; padding: 4pt 10pt; background: #f6f5f1; border-left: 3px solid #2a78d6; font-family: Cambria, Georgia, serif; }
+.eq { font-family: Cambria, Georgia, serif; font-size: 11pt; margin: 3pt 0 3pt 18pt; white-space: pre-wrap; }
+img { max-width: 100%; page-break-inside: avoid; margin: 4pt 0; } code { font-size: 8.5pt; background: #f3f2ee; padding: 0 2px; }
+</style></head><body><h1>Statistical Arbitrage on the US Treasury Curve: PCA Residual Mean Reversion</h1>
+<p><strong>Sleeve 1, mean reversion.</strong> Final report, 2026-10-23. Every number below is sourced in <code>deck_numbers.md</code>; the section letters in brackets point to it.</p>
+<h2>1. Research question</h2>
+<p>After the curve's common factors (level, slope and, optionally, curvature) are hedged out, does each Treasury tenor's residual mean-revert strongly and fast enough to pay realistic transaction costs?</p>
+<p><strong>Answer.</strong></p>
+<ul>
+<li><strong>The signal is real before cost.</strong> Every model has a positive gross Sharpe (0.45–1.21), and the entry signal has a positive, significant rank correlation with the next 10 days' residual move (IC 0.13–0.33).</li>
+<li><strong>No model survives cost at the 1x table.</strong> The headline model's net Sharpe is −0.60. The best variant, PCA-3 sparse, is at −0.09 and breaks even at 0.93x the cost table.</li>
+<li><strong>One cost-reduction round helped but did not change the answer.</strong> Freezing position size at entry, plus a per-fold vol gate, lifts PCA-3 sparse to +0.09 net. After correcting for 35 trials, that is indistinguishable from zero.</li>
+</ul>
+<h2>2. Data and design</h2>
+<p><strong>Data.</strong></p>
+<ul>
+<li>Daily Bloomberg generic Treasury yields (2y, 3y, 5y, 7y, 10y, 30y; bp), 1990–2026. The 3y starts in 2005 and the 7y in 2009.</li>
+<li>HY and IG OAS indices and CDX HY, used by the credit pairs in the headline model (Bloomberg 2026).</li>
+<li>The fed funds target from FRED, used only to label regimes.</li>
+</ul>
+<p><strong>Walk-forward design.</strong></p>
+<ul>
+<li>33 folds: 5-year (1,260-bar) training window, 1-year (252-bar) test window, 10-bar purge, 5-bar embargo.</li>
+<li>Everything is fitted on the training window only: loadings, bands, scalers and regime models.</li>
+<li>Rolling statistics are trailing.</li>
+<li>A leakage suite rewrites all data after a cut-off date and checks that no decision made before it changes.</li>
+</ul>
+<p><strong>Costs and timing.</strong></p>
+<ul>
+<li>0.25 bp per Treasury leg, one way, charged on every position change and on sleeve-leverage changes. Credit pairs pay 0.5–2 bp.</li>
+<li>A signal computed at the close of day t sets the position held over day t+1.</li>
+</ul>
+<p><strong>Models compared.</strong></p>
+<table>
+<thead>
+<tr>
+<th>model</th>
+<th>construction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pairwise static / adaptive</td>
+<td>Engle–Granger and Johansen screen (Engle and Granger 1987; Johansen 1991); OLS or Kalman hedge ratio (Kalman 1960); OU bands; adaptive version has a regime gate</td>
+</tr>
+<tr>
+<td>PCA-2 full</td>
+<td>tenor residual after projecting out level and slope</td>
+</tr>
+<tr>
+<td>PCA-3 sparse</td>
+<td>each tenor hedged with its 3 nearest tenors, neutral to level, slope and curvature</td>
+</tr>
+<tr>
+<td><strong>Headline</strong> (named before the PCA model was run on real data)</td>
+<td>PCA-2 full + the adaptive credit pairs</td>
+</tr>
+<tr>
+<td>Fixed flies (benchmarks)</td>
+<td>2s5s10s and 3s5s7s, traded with the same rules</td>
+</tr>
+</tbody>
+</table>
+<h2>3. Method</h2>
+<h3>3.1 PCA hedge</h3>
+<p>On each training window, the covariance of daily yield changes Δy (bp) gives eigenvectors L (one column per factor). The first three are the level, slope and curvature factors of Litterman and Scheinkman (1991).</p>
+<ul>
+<li><strong>PCA-2 full.</strong> The residual is r_t = W Δy_t with <strong>W = I − L Lᵀ</strong> (k = 2), so row i of W is the factor-neutral package for tenor i.</li>
+<li><strong>PCA-3 sparse.</strong> Holds one unit of the own tenor, with weights on the k = 3 nearest tenors solving L_hedgesᵀ w = −L_own exactly.</li>
+</ul>
+<p>The fold whose test window starts on 2022-12-12 (trained 2018-01 to 2022-11) is shown below [B].</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>PC1 level</th>
+<th>PC2 slope</th>
+<th>PC3 curvature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>variance share</td>
+<td>89.2%</td>
+<td>9.0%</td>
+<td>1.4%</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>W diagonal (PCA-2):</strong> 0.62 (2y), 0.67, 0.78 (5y), 0.79, 0.72, 0.42 (30y). The trace is 4 = 6 − 2.</li>
+<li><strong>5y package:</strong> +0.78 (5y), −0.23 (2y), −0.24 (3y), −0.19 (7y), −0.14 (10y), −0.06 (30y).</li>
+</ul>
+<p><img alt="PCA loadings" src="figures/03_pca_loadings.png" /></p>
+<p><img alt="W diagonal" src="figures/03_pca_W_diagonal.png" /></p>
+<h3>3.2 OU / AR(1) s-score</h3>
+<p>Following Avellaneda and Lee (2010), the cumulative residual C_t is fitted on a trailing <strong>60-bar</strong> window, re-estimated every bar:</p>
+<div class="eq">C<sub>t</sub> = a + b · C<sub>t−1</sub> + e<sub>t</sub></div>
+<div class="eq">b = cov(C<sub>t</sub>, C<sub>t−1</sub>) / var(C<sub>t−1</sub>),   a = mean(C<sub>t</sub>) − b · mean(C<sub>t−1</sub>)</div>
+<div class="eq">m = a / (1 − b),   σ<sub>eq</sub> = √( var(e) / (1 − b²) ),   var(e) = var(C<sub>t</sub>) − b² · var(C<sub>t−1</sub>)</div>
+<div class="eq"><b>z<sub>t</sub> = (C<sub>t</sub> − m) / σ<sub>eq</sub></b>,   half-life = −ln 2 / ln b,   κ = ln 2 / half-life</div>
+
+<p>A bar is tradeable only if 0 &lt; b &lt; 1 and the half-life is under 30 bars. This screen passes 90% of live bars for PCA-2 and 96% for PCA-3 sparse [A].</p>
+<p>The fitted reversion is much faster than the training-window process.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>PCA-2 full</th>
+<th>PCA-3 sparse</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>median half-life, trailing 60-bar fit</td>
+<td>6.4 bars</td>
+<td>4.5 bars</td>
+</tr>
+<tr>
+<td>median half-life, 5-year training fit</td>
+<td>103 bars</td>
+<td>32 bars</td>
+</tr>
+</tbody>
+</table>
+<p>Most of the gap is small-sample bias in the AR(1) coefficient (Kendall 1954). Simulating the training process and fitting it on 60 bars gives 8.3 and 7.1 bars before any screen [C]. σ_eq and the half-life are therefore optimistic.</p>
+<h3>3.3 Entry, exit and stop</h3>
+<ul>
+<li><strong>Entry and exit.</strong> Short the residual (in yield units) when z &gt; entry, go long when z &lt; −entry, and flat once |z| ≤ exit.<ul>
+<li>Entry is chosen from {1.0, 1.25, 1.5, 1.75, 2.0, 2.5}, exit from {0, 0.25, 0.5, 0.75}.</li>
+<li>Both are picked per member per fold to maximise <strong>net</strong> per-bar Sharpe on the training window.</li>
+</ul>
+</li>
+<li><strong>Stop-loss.</strong> If |z| &gt; 4, the position is closed and not reopened until |z| is back inside the entry band. There is no time stop.</li>
+<li><strong>Sign.</strong> z &gt; 0 means the tenor's yield is high relative to the factors, i.e. the bond is cheap. The trade buys it and takes the opposite side of the hedge legs [A, K].</li>
+</ul>
+<h3>3.4 Sizing and costs</h3>
+<ul>
+<li><strong>Member sizing.</strong> Each member holds signal / σ̂, where σ̂ is the EW (span 60) standard deviation of daily residual changes, floored at 25% of its expanding median. One position unit is one "risk unit", about one daily standard deviation.</li>
+<li><strong>Sleeve sizing.</strong> Members are equal-weighted. The sleeve is scaled to a 10% annual vol target using the larger of recent (EW-120) and long-run vol, with leverage capped at 3x. The drawdown overlay is off.</li>
+<li><strong>Cost per bar.</strong> |Δposition| × Σ_legs |w_leg| × 0.25 bp, plus |Δ sleeve weight| × mean |position| × unit cost.</li>
+</ul>
+<h2>4. Results</h2>
+<h3>4.1 Model comparison (1x cost) [E]</h3>
+<table>
+<thead>
+<tr>
+<th>model</th>
+<th>gross SR</th>
+<th>net SR</th>
+<th>breakeven cost ×</th>
+<th>IC 10d (entry bars)</th>
+<th>trades / yr</th>
+<th>cost, % cap pa</th>
+<th>effective bets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Headline (PCA-2 + credit)</strong></td>
+<td>0.547</td>
+<td>−0.599</td>
+<td>0.475</td>
+<td>0.166</td>
+<td>13.1</td>
+<td>9.6</td>
+<td>8.7</td>
+</tr>
+<tr>
+<td>PCA-3 sparse</td>
+<td>1.210</td>
+<td>−0.087</td>
+<td>0.934</td>
+<td>0.326</td>
+<td>7.9</td>
+<td>10.8</td>
+<td>2.3</td>
+</tr>
+<tr>
+<td>PCA-2 full</td>
+<td>0.448</td>
+<td>−0.668</td>
+<td>0.398</td>
+<td>0.196</td>
+<td>10.6</td>
+<td>9.7</td>
+<td>5.7</td>
+</tr>
+<tr>
+<td>Pairwise adaptive (NN gate)</td>
+<td>0.459</td>
+<td>−0.257</td>
+<td>0.640</td>
+<td>0.127</td>
+<td>7.7</td>
+<td>5.6</td>
+<td>14.4</td>
+</tr>
+<tr>
+<td>Fly 2s5s10s</td>
+<td>0.109</td>
+<td>−0.422</td>
+<td>0.215</td>
+<td>—</td>
+<td>—</td>
+<td>3.9</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Fly 3s5s7s</td>
+<td>0.382</td>
+<td>−0.766</td>
+<td>0.315</td>
+<td>—</td>
+<td>—</td>
+<td>10.1</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Per dollar [G].</strong> On $1m of capital, PCA-3 sparse earns $100.5k a year gross and pays $107.6k in cost, so each $1 of gross P&amp;L costs $1.07. The headline pays $2.10 of cost per $1 of gross.</p>
+<p><img alt="Cumulative gross vs net" src="figures/05_cumulative_gross_vs_net.png" /></p>
+<h3>4.2 Hit ratio, conditional gain and loss, expectancy [D]</h3>
+<p><strong>Units.</strong> Trade P&amp;L is in risk units (daily σ at entry); it is neither σ_eq nor bp.</p>
+<ul>
+<li>W = the mean net gain of winning trades; L = the mean net loss of losing trades.</li>
+<li>Expectancy = p·W − (1 − p)·L.</li>
+<li>Breakeven hit rate = L / (W + L).</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>model</th>
+<th>net hit p</th>
+<th>W</th>
+<th>L</th>
+<th>W/L</th>
+<th>expectancy</th>
+<th>breakeven hit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Headline</td>
+<td>54.5%</td>
+<td>1.94</td>
+<td>3.68</td>
+<td>0.53</td>
+<td>−0.62</td>
+<td>65.5%</td>
+</tr>
+<tr>
+<td>PCA-3 sparse (member trades)</td>
+<td>64.7%</td>
+<td>1.53</td>
+<td>2.76</td>
+<td>0.55</td>
+<td>+0.01</td>
+<td>64.4%</td>
+</tr>
+<tr>
+<td>PCA-3 sparse (distinct trades)</td>
+<td>57.6%</td>
+<td>1.52</td>
+<td>2.86</td>
+<td>0.53</td>
+<td>−0.33</td>
+<td>65.2%</td>
+</tr>
+<tr>
+<td>PCA-2 full</td>
+<td>54.4%</td>
+<td>2.04</td>
+<td>3.97</td>
+<td>0.51</td>
+<td>−0.70</td>
+<td>66.1%</td>
+</tr>
+<tr>
+<td>Pairwise NN</td>
+<td>54.0%</td>
+<td>1.89</td>
+<td>3.56</td>
+<td>0.53</td>
+<td>−0.62</td>
+<td>65.4%</td>
+</tr>
+<tr>
+<td>Fly 2s5s10s</td>
+<td>51.7%</td>
+<td>1.90</td>
+<td>4.63</td>
+<td>0.41</td>
+<td>−1.26</td>
+<td>70.9%</td>
+</tr>
+<tr>
+<td>Fly 3s5s7s</td>
+<td>44.2%</td>
+<td>1.74</td>
+<td>3.43</td>
+<td>0.51</td>
+<td>−1.15</td>
+<td>66.4%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The shape is the same for every model.</strong> Trades win more often than not (gross hit rates of 57–86%). But after cost, a loser costs about twice what a winner earns (W/L ≈ 0.5), so the strategy needs a net hit rate of about 65% and gets 54–65%. Cutting L matters more than raising p.</p>
+<p><img alt="Hit ratio and CG-CL" src="figures/07_hit_ratio_cg_cl.png" /></p>
+<h3>4.3 Why the entry band sits at 2.0–2.5, and at the top of the grid</h3>
+<p>Each round trip pays a <strong>fixed</strong> cost in bp, while the reversion a trade can capture is roughly (entry − exit) × σ_eq. A wider band therefore captures more reversion per unit of cost, at the price of fewer trades.</p>
+<p>For PCA-2 the numbers are:</p>
+<ul>
+<li>a round trip costs 0.73 bp;</li>
+<li>median σ_eq is 0.9–1.6 bp by tenor [C];</li>
+<li>so entering at 2.5 and exiting at 0.25 targets about 2.0–3.6 bp.</li>
+</ul>
+<p>The net-Sharpe optimiser pushes the band up for exactly this reason. <strong>The median entry is 2.5 for five of six PCA-2 tenors, and the band sits at the grid's top value in 45–70% of folds</strong> [A]. The optimum may lie above the grid.</p>
+<p>Higher fixed bands do not rescue the model out of sample:</p>
+<table>
+<thead>
+<tr>
+<th>fixed entry band</th>
+<th>effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.5</td>
+<td>lifts PCA-2 net Sharpe from −0.67 to −0.33, at 3.5 trades a year</td>
+</tr>
+<tr>
+<td>3.0</td>
+<td>leaves 0.6 trades a year</td>
+</tr>
+</tbody>
+</table>
+<p>The underlying problem is that realised reversion falls short of the forecast. The median OU-implied reversion is 1.67 bp, but the mean realised move per trade is 0.45 bp.</p>
+<h3>4.4 Quiet vs volatile entries [F]</h3>
+<p>Trades are split into terciles of residual vol at entry (bp/day, the sizing vol). The terciles are taken over each model's trades, ex post.</p>
+<ul>
+<li><strong>Cost.</strong> Cost is fixed in bp while the position is 1/vol, so a quiet market buys more DV01 per unit of edge. In the low-vol tercile a round trip costs 1.3–2.3× a day's move.</li>
+<li><strong>Losses.</strong> Low-vol trades lose on every model: −1.25 (headline), −0.48 (PCA-3 sparse) and −1.47 (PCA-2) risk units per trade.</li>
+<li><strong>Exception.</strong> PCA-3 sparse makes +0.48 per trade in its high-vol tercile.</li>
+</ul>
+<h2>5. Cost round 1: freeze size, vol gate [H]</h2>
+<p>Two cost-reduction rules were tested in this round:</p>
+<ul>
+<li><strong>freeze_size</strong>: hold the entry size until exit. There is no resizing within a trade and no leverage rescaling of open trades.</li>
+<li><strong>vol_gate</strong>: block new entries when trailing residual vol is below X. X is fitted per member per fold on the training window, as the percentile (10th–50th) that maximises training net P&amp;L per trade. The fitted X counts as a trial.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>model</th>
+<th>config</th>
+<th>gross SR</th>
+<th>net SR 1x</th>
+<th>trades / yr</th>
+<th>net hit</th>
+<th>mean net / trade</th>
+<th>cost % pa</th>
+<th>breakeven ×</th>
+<th>net SR 0.5x / 2x</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Headline</td>
+<td>baseline</td>
+<td>0.547</td>
+<td>−0.599</td>
+<td>13.1</td>
+<td>54.5%</td>
+<td>−0.62</td>
+<td>9.6</td>
+<td>0.48</td>
+<td>−0.03 / −1.64</td>
+</tr>
+<tr>
+<td>Headline</td>
+<td>freeze_size</td>
+<td>0.557</td>
+<td>−0.351</td>
+<td>13.1</td>
+<td>56.1%</td>
+<td>−0.45</td>
+<td>8.2</td>
+<td>0.61</td>
+<td>+0.10 / −1.20</td>
+</tr>
+<tr>
+<td>Headline</td>
+<td>freeze + vol_gate</td>
+<td>0.339</td>
+<td>−0.224</td>
+<td>8.4</td>
+<td>55.9%</td>
+<td>−0.38</td>
+<td>4.5</td>
+<td>0.60</td>
+<td>+0.06 / −0.76</td>
+</tr>
+<tr>
+<td>PCA-3 sparse</td>
+<td>baseline</td>
+<td>1.210</td>
+<td>−0.087</td>
+<td>7.9</td>
+<td>57.6%</td>
+<td>−0.33</td>
+<td>10.8</td>
+<td>0.93</td>
+<td>+0.58 / −1.28</td>
+</tr>
+<tr>
+<td>PCA-3 sparse</td>
+<td>freeze_size</td>
+<td>1.168</td>
+<td>+0.073</td>
+<td>7.9</td>
+<td>60.8%</td>
+<td>−0.12</td>
+<td>9.5</td>
+<td>1.07</td>
+<td>+0.63 / −0.95</td>
+</tr>
+<tr>
+<td>PCA-3 sparse</td>
+<td>freeze + vol_gate</td>
+<td>0.559</td>
+<td>+0.090</td>
+<td>3.4</td>
+<td>61.3%</td>
+<td>−0.10</td>
+<td>3.9</td>
+<td>1.19</td>
+<td>+0.33 / −0.38</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Freezing size is the clean gain.</strong> It has no fitted parameter, leaves gross intact, cuts cost by 11–14%, and adds 0.16–0.25 net Sharpe.</li>
+<li><strong>The vol gate halves cost again but also halves PCA-3 sparse's gross Sharpe.</strong> It removes most low-vol entries: 142 → 35 for the headline, 85 → 21 for PCA-3 sparse.</li>
+<li><strong>Net positive at 1x?</strong> The headline is not. PCA-3 sparse is marginally positive, and not distinguishable from zero (§6).</li>
+</ul>
+<p><img alt="Entry-vol terciles" src="figures/08_entry_vol_terciles.png" /></p>
+<p><img alt="Cost sensitivity" src="figures/09_cost_sensitivity.png" /></p>
+<h2>6. Robustness</h2>
+<p><strong>Trial count and deflated Sharpe</strong> (Bailey and López de Prado 2014) [J]. 35 trials are documented: 11 model-table rows, 8 cost filters, 8 curve rules, 4 design revisions and 4 cost-round configs.</p>
+<table>
+<thead>
+<tr>
+<th>trial set</th>
+<th>best variant</th>
+<th>DSR net</th>
+<th>DSR gross</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11 model-table rows</td>
+<td>PCA-3 sparse</td>
+<td>0.016</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>all 35 documented</td>
+<td>PCA-3 sparse freeze + vol_gate</td>
+<td>0.009</td>
+<td>0.61</td>
+</tr>
+<tr>
+<td>47 (adding 12 earlier experiments never booked as trials)</td>
+<td>same</td>
+<td>0.002</td>
+<td>0.42</td>
+</tr>
+</tbody>
+</table>
+<p>The gross edge survives the selection correction at the narrow count; the net result does not.</p>
+<p><strong>PCA-3 sparse construction defect, 2010–13.</strong></p>
+<ul>
+<li><strong>Cause.</strong> Before the 7y has a full training window, the 3y residual is hedged by a nearly singular 2y/5y/10y solve, with weights +68 / −121 / +69 per unit of 3y. It passes the <code>cond &lt; 1e8</code> check.</li>
+<li><strong>Effect.</strong> Trades entered in those four folds lost 34 risk units across 13 distinct trades, 20 of it from the 3y portfolio. That is −67 if members are counted separately.</li>
+<li><strong>Status.</strong> It is deliberately left unfixed, because a fix chosen after seeing results would be another trial.</li>
+</ul>
+<p><strong>Overlap in PCA-3 sparse.</strong></p>
+<ul>
+<li>The 2y, 3y and 5y members are often the same portfolio, so its 6 members are 2.3 effective bets.</li>
+<li>Counting each distinct portfolio once moves its net Sharpe by only 0.01–0.03 (−0.097 baseline; +0.061 freeze + gate) [I].</li>
+</ul>
+<p><strong>Regimes.</strong></p>
+<ul>
+<li>Every Fed regime loses net, and auction weeks are no different (p &gt; 0.09).</li>
+<li>Daily P&amp;L correlates with rates, MOVE and HY OAS at |ρ| &lt; 0.1.</li>
+</ul>
+<h2>7. Limitations and next steps</h2>
+<p><strong>Limitations.</strong></p>
+<ul>
+<li><strong>Cost model.</strong><ul>
+<li>The cost table is flat; a time-varying one (0.5 bp before 2008, 30y at 1.5x) makes every model worse.</li>
+<li>Financing, carry, roll-down, specialness and futures basis are not modelled.</li>
+<li>The curve is traded in cash-yield bp.</li>
+</ul>
+</li>
+<li><strong>Credit pairs.</strong> HY/IG OAS cannot be traded as modelled.</li>
+<li><strong>Parameter provenance.</strong> Several experiment parameters were proposed after full-sample results were seen. The repo has no version history.</li>
+</ul>
+<p><strong>Next steps.</strong> The aim is to cut L, the average loss, which is twice the average gain.</p>
+<ol>
+<li><strong>Time stop.</strong> A 20-bar time stop was tested and hurt PCA-3 sparse (−0.26 Sharpe). Next, fit the stop per fold rather than fixing it at 20.</li>
+<li><strong>Tighter stop-loss.</strong> The current stop is |z| &gt; 4. Tighten it, or add a P&amp;L stop in risk units, fitted per fold.</li>
+<li><strong>Regime gate.</strong> A trailing MOVE-tercile gate improved every model slightly. Next, test a gate on the residual's own vol regime or on half-life stability.</li>
+<li><strong>Fix the 2010–13 hedge defect</strong> with a Σ|w| cap, and count it as a trial.</li>
+<li><strong>Slow the signal.</strong> Use a 120- or 250-bar OU window, or a minimum holding period, to reduce small-sample bias and turnover.</li>
+<li><strong>Futures execution.</strong> Price micro yield futures (about 0.1 bp per leg) as a separate cost scenario after confirming ticks and commissions with the broker.</li>
+</ol>
+<h2>References</h2>
+<ul>
+<li>Avellaneda, M., and Lee, J.-H. (2010). Statistical arbitrage in the U.S. equities market. <em>Quantitative Finance</em>, 10(7), 761–782.</li>
+<li>Bailey, D. H., and López de Prado, M. (2014). The deflated Sharpe ratio: Correcting for selection bias, backtest overfitting, and non-normality. <em>Journal of Portfolio Management</em>, 40(5), 94–107.</li>
+<li>Bloomberg L.P. (2026). Generic US Treasury yields (USGG2YR, USGG3YR, USGG5YR, USGG7YR, USGG10YR, USGG30YR Index), Bloomberg US Corporate High Yield OAS (LF98OAS Index) and US Corporate Investment Grade OAS (LUACOAS Index), CDX HY 5Y generic, HYG. Retrieved via Bloomberg Terminal, 2026. <strong>[VERIFY: index display names]</strong></li>
+<li>Board of Governors of the Federal Reserve System (2026). Federal funds target rate (DFEDTAR) and target range upper limit (DFEDTARU). Retrieved from FRED, Federal Reserve Bank of St. Louis.</li>
+<li>Engle, R. F., and Granger, C. W. J. (1987). Co-integration and error correction: Representation, estimation, and testing. <em>Econometrica</em>, 55(2), 251–276.</li>
+<li>Johansen, S. (1991). Estimation and hypothesis testing of cointegration vectors in Gaussian vector autoregressive models. <em>Econometrica</em>, 59(6), 1551–1580.</li>
+<li>Kalman, R. E. (1960). A new approach to linear filtering and prediction problems. <em>Journal of Basic Engineering</em>, 82(1), 35–45.</li>
+<li>Kendall, M. G. (1954). Note on bias in the estimation of autocorrelation. <em>Biometrika</em>, 41(3/4), 403–404.</li>
+<li>Leung, T., and Li, X. (2015). Optimal mean reversion trading with transaction costs and stop-loss exit. <em>International Journal of Theoretical and Applied Finance</em>, 18(3), 1550020.</li>
+<li>Litterman, R., and Scheinkman, J. (1991). Common factors affecting bond returns. <em>Journal of Fixed Income</em>, 1(1), 54–61.</li>
+</ul>
+<p><em>Leung and Li (2015) is used for the optimal-stopping band variant (PCA-2/PCA-3 Leung-Li rows of the model table). Its gross Sharpe is −0.05 and 0.26, so it is reported but not pursued.</em></p></body></html>

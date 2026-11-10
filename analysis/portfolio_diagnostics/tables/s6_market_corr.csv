@@ -1,0 +1,17 @@
+model,factor,corr,n
+headline,rates_level_change,0.051119822916847586,8175
+headline,move_level,0.003130081191313889,8175
+headline,move_change,-0.06963885581151436,8175
+headline,hy_oas_change,-0.06828642921092168,6802
+pca3_sparse,rates_level_change,-0.011763846182280978,8175
+pca3_sparse,move_level,0.007742196941941772,8175
+pca3_sparse,move_change,-0.03570683039008423,8175
+pca3_sparse,hy_oas_change,-0.018407077495495822,6802
+pca2,rates_level_change,0.022006393817037857,8175
+pca2,move_level,0.01090283403257596,8175
+pca2,move_change,-0.05555057909784594,8175
+pca2,hy_oas_change,-0.026473091557979916,6802
+pairwise_nn,rates_level_change,0.04019855173252392,8175
+pairwise_nn,move_level,-0.0032718713402562437,8175
+pairwise_nn,move_change,-0.051243860404171324,8175
+pairwise_nn,hy_oas_change,-0.0897142999498656,6802

@@ -1,0 +1,3 @@
+trial_set,n_trials,trial_sharpe_sd,best,sharpe_net,dsr_net,sharpe_gross,dsr_gross
+"documented, incl. this round",35,0.23901100130679925,PCA-3 sparse / freeze_size+vol_gate,0.09018808098833814,0.009213987627257676,0.5585070819656157,0.6086107212060363
+documented + step-8 experiments + this round,47,0.2633846150968756,PCA-3 sparse / freeze_size+vol_gate,0.09018808098833814,0.002397194712021713,0.5585070819656157,0.4207509429126923

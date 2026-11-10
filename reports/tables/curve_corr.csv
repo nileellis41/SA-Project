@@ -1,0 +1,9 @@
+strategy,PCA headline (PCA-2 + credit),PCA-3 sparse
+always steepener,0.01,-0.03
+always flattener,-0.01,0.03
+policy rule,0.01,-0.01
+growth rule,-0.02,-0.01
+policy + growth,0.01,-0.03
+slope momentum,-0.07,-0.0
+"2s10s mean reversion, static",-0.13,-0.02
+"2s10s mean reversion, adaptive",-0.12,-0.02

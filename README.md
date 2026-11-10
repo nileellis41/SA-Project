@@ -2,14 +2,16 @@
 
 **Research question.** After hedging out the first two or three principal components of the Treasury curve, does each tenor's residual mean-revert strongly enough to pay its transaction costs?
 
-The answer, from walk-forward out-of-sample tests over 1995–2026: **the signal is real before cost, and no model survives cost.**
+The answer, from walk-forward out-of-sample tests over 1995–2026: **no model survives cost, and most of the gross edge is a data artifact.**
 
-| model | gross Sharpe | net Sharpe |
-|---|---|---|
-| headline | 0.55 | −0.60 |
-| best variant (PCA-3 sparse) | 1.21 | −0.09 |
+| model | gross Sharpe (as submitted) | gross Sharpe, switch bar cleaned | net Sharpe, cleaned |
+|---|---|---|---|
+| headline | 0.55 | −0.04 | −1.05 |
+| best variant (PCA-3 sparse) | 1.21 | 0.31 | −0.92 |
 
-The best variant breaks even at 0.93x the cost table. The write-up is `submission/report.md` (and `.pdf`). Every number in it is sourced in `submission/deck_numbers.md`.
+**What the artifact is.** Bloomberg generic yields (USGG2YR … USGG30YR) switch to the newly auctioned bond on the bar after each new-issue auction. On that bar a tenor jumps about 1 bp against its neighbours, with a predictable sign (t up to 11). A backtest position held over the switch books the change of bond as P&L, which a real bond position never sees. Cleaning only that bar takes the headline's gross Sharpe from 0.55 to about zero and puts every model below all three placebo draws (the placebo cleans the same number of ordinary days). The check was pre-registered with a kill criterion, and it met that criterion for all three models. Its design and one recorded deviation are in `analysis/experiments/roll_check.md`, and the results are in `results/roll_check/summary.md`.
+
+**As submitted.** The class write-up (`submission/report.md` and `.pdf`, numbers sourced in `submission/deck_numbers.md`) predates this check and reports "the signal is real before cost". It is kept unchanged as the record of what was submitted. Its cost conclusion stands, and its gross-edge conclusion does not.
 
 ## What the code does
 
@@ -76,6 +78,7 @@ Run from the repo root, in this order. Prefix each command with `uv run` if you 
 | 6. Walk-forward experiments (time stop, resize band, entry bands, MOVE gate, LOO) | `python -m analysis.experiments.run_experiments [--force]` | `analysis/experiments/results.csv` |
 | 7. Cost round 1 (freeze size, vol gate) | `python -m analysis.experiments.cost_round1 [--force]` | `results/cost_round1/` |
 | 8. Submission numbers, figures, PDF | `python -m analysis.submission_numbers`, `python -m analysis.submission_figures`, `uv run --with markdown python -m analysis.submission_pdf` (needs Edge or Chrome) | `submission/tables/`, `submission/figures/`, `submission/report.pdf` |
+| 9. On-the-run roll check (data check, not a trial) | `python -m analysis.experiments.roll_check [--force]` | `results/roll_check/` |
 | Tests, including the leakage suite | `python -m pytest tests analysis/experiments/tests analysis/portfolio_diagnostics/tests` | |
 
 Steps 3–8 read cached runs and take seconds to a few minutes each. Steps 1–2 with `--force` refit every fold and take longer.
@@ -103,6 +106,7 @@ results/        cost round 1 outputs
 
 ## Known limitations
 
+- **The yield series contain on-the-run switch jumps.** USGG generics change bond on the bar after each new-issue auction, and most of the gross edge comes from those jumps (see the top of this page). Every table outside `results/roll_check/` uses the uncleaned series. The next step is to re-run on series without the switch: Fed GSW fitted yields, or FRED constant-maturity yields (DGS2 … DGS30).
 - **No model is net positive at the 1x cost table.**
   - PCA-3 sparse with frozen sizing and a vol gate reaches +0.09 net Sharpe, but its deflated Sharpe is 0.009 at 35 trials, so it cannot be told apart from zero.
 - **PCA-3 sparse 2010–13 near-singular hedge.** Before the 7y has a full training window, the 3y residual is hedged with a nearly singular 2y/5y/10y solve, with weights up to +68 / −121 / +69.
